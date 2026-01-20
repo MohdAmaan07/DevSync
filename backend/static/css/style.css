@@ -1,0 +1,59 @@
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem;
+    border-radius: 12px;
+    background: var(--card-bg, #fff);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.login-title {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.brand {
+    color: #6366f1;
+}
+
+.login-subtitle {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.github-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.2rem;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.github-btn:hover {
+    background: #000;
+}
+
+.github-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.login-footer {
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: #888;
+}
