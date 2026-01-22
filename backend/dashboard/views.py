@@ -1,24 +1,36 @@
+from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.decorators import action
-from drf_spectacular.utils import extend_schema
-from authentication.permissions import IsGitHubAuthenticated
-from django.contrib.auth import get_user_model
-from .serializers import DashboardSerializer
+
+from .serializers import DashboardResponseSerializer
+
 
 # Create your views here.
+@extend_schema(tags=["Dashboard"])
 class DashboardView(GenericViewSet):
-    permission_classes = [IsGitHubAuthenticated]
-    serializer_class = DashboardSerializer
+    def get_queryset(self):
+        return (
+            get_user_model().
+            objects.select_related("github_profile")
+            .prefetch_related("github_profile__repositories")
+            .filter(pk=self.request.user.pk)
+        )
     
     @extend_schema(
         summary="Dashboard View",
         description="Renders the dashboard page for authenticated users.",
-        responses={200: DashboardSerializer},
+        request=None,
+        responses={200: DashboardResponseSerializer},
     )
     @action(detail=False, methods=["get"], url_path="stats")
     def get(self, request):
-        user = get_user_model().objects.filter(id=request.user.id)
-        response = DashboardSerializer(user, many=True)
-        return Response({"message": "Dashboard data", "user_filter": response.data})
-        # return render(request, 'dashboard/dashboard.html', {'user_filter': user_filter})
+        user = self.get_queryset().get()
+        serializer = self.get_serializer(user)
+        return Response(
+            {
+                "message": "Dashboard data",
+                "user_filter": serializer.data,
+            }
+        )
