@@ -1,50 +1,27 @@
 from allauth.socialaccount.models import SocialAccount, SocialToken
 from django.contrib.auth import get_user_model, logout
 from drf_spectacular.utils import extend_schema
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.permissions import IsGitHubAuthenticated
+from github_integration.models import GithubProfile
 
 from .serializers import (
-    UserResponseSerializer,
-    UserLogoutRequestSerializer,
-    GitHubDisconnectRequestSerializer,
     GitHubDisconnectResponseSerializer,
     UserLogoutResponseSerializer,
-    AuthTokenResponseSerializer,
+    UserResponseSerializer,
 )
-from .utils import revoke_github_token, logout
+from .utils import revoke_github_token
 
 
 # Create your views here.
 @extend_schema(tags=["Auth"])
 class AuthenticationView(GenericViewSet):
     permission_classes = [IsAuthenticated, IsGitHubAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
     queryset = get_user_model().objects.all()
-
-    @extend_schema(
-        summary="Get Auth Token",
-        description="Returns the authentication token for the user.",
-        request=None,
-        responses={200: AuthTokenResponseSerializer},
-    )
-    @action(detail=False, methods=["get"], url_path="token")
-    def get_token(self, request):
-        refresh = RefreshToken.for_user(request.user)
-        serializer = AuthTokenResponseSerializer(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            }
-        )
-        return Response(serializer.data)
 
     @extend_schema(
         summary="Get Authenticated User",
@@ -60,20 +37,21 @@ class AuthenticationView(GenericViewSet):
     @extend_schema(
         summary="Authentication Logout",
         description="Logs out the authenticated user.",
-        request=UserLogoutRequestSerializer,
+        request=None,
         responses={200: UserLogoutResponseSerializer},
     )
     @action(detail=False, methods=["post"], url_path="logout")
     def logout_user(self, request):
-        result = logout(request)
-
-        serializer = UserLogoutResponseSerializer(result["data"])
-        return Response(serializer.data, status=result["status"])
+        logout(request)
+        serializer = UserLogoutResponseSerializer(
+            {"message": "User has been logged out."}
+        )
+        return Response(serializer.data, status=200)
 
     @extend_schema(
-        summary="Revoke GitHub Token",
-        description="Revokes the GitHub access token for the authenticated user.",
-        request=GitHubDisconnectRequestSerializer,
+        summary="Disconnect GitHub",
+        description="Revokes GitHub access token and disconnects GitHub from the user's account.",
+        request=None,
         responses={
             200: GitHubDisconnectResponseSerializer,
             400: GitHubDisconnectResponseSerializer,
@@ -91,23 +69,21 @@ class AuthenticationView(GenericViewSet):
                 status=400,
             )
 
+        profile = GithubProfile.objects.filter(user=request.user).first()
+
+        if profile:
+            profile.delete()
+            request.user.github_username = None
+            request.user.save(update_fields=["github_username"])
+
         SocialAccount.objects.filter(user=request.user, provider="github").delete()
         SocialToken.objects.filter(
             account__user=request.user, account__provider="github"
         ).delete()
 
-        result = logout(request)
-        
-        if result["status"] != 200:
-            return Response(
-                GitHubDisconnectResponseSerializer(
-                    {"message": "GitHub token revoked, but failed to logout user."}
-                ).data,
-                status=result["status"],
-            )
+        logout(request)
 
-        return Response(
-            GitHubDisconnectResponseSerializer(
-                {"message": "GitHub token revoked successfully."}
-            ).data
+        serializer = UserLogoutResponseSerializer(
+            {"message": "User has been logged out."}
         )
+        return Response(serializer.data, status=200)

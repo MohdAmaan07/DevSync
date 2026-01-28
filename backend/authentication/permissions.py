@@ -9,6 +9,7 @@ from github_integration.models import GithubProfile
 
 logger = logging.getLogger(__name__)
 
+
 class IsGitHubAuthenticated(permissions.BasePermission):
     """
     Custom permission to check if the user is authenticated via GitHub
@@ -27,9 +28,9 @@ class IsGitHubAuthenticated(permissions.BasePermission):
             return False
 
         token_obj = GithubProfile.objects.filter(
-            github_username=getattr(user, 'github_username', None)
+            github_username=getattr(user, "github_username", None)
         ).first()
-        
+
         if not token_obj or not token_obj.access_token:
             return False
 
@@ -44,15 +45,17 @@ class IsGitHubAuthenticated(permissions.BasePermission):
                 "Authorization": f"token {token_obj.access_token}",
                 "Accept": "application/vnd.github.v3+json",
             }
-            response = requests.get("https://api.github.com/user", headers=headers, timeout=5)
-            
+            response = requests.get(
+                "https://api.github.com/user", headers=headers, timeout=5
+            )
+
             if response.status_code == 200:
                 cache.set(cache_key, True, 600)
                 return True
             else:
                 cache.set(cache_key, False, 60)
                 return False
-                
+
         except requests.RequestException as e:
             logger.error(f"GitHub API connection error: {e}")
             return False

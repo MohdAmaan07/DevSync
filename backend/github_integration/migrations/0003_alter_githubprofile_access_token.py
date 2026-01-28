@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("github_integration", "0002_alter_githubprofile_avatar_url_and_more"),
     ]

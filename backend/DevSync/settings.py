@@ -96,8 +96,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "allauth",
     "allauth.account",
@@ -114,22 +112,14 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware", 
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware", 
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
 
 CACHES = {
     "default": {
@@ -154,8 +144,12 @@ SOCIALACCOUNT_PROVIDERS = {
 SITE_ID = 1
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
-
-LOGIN_REDIRECT_URL = "/auth/token/"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_STORE_TOKENS = False
+SOCIALACCOUNT_ADAPTER = "github_integration.adapter.GitHubSocialAccountAdapter"
+LOGIN_REDIRECT_URL = "/dashboard/"
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
@@ -164,37 +158,25 @@ ACCOUNT_SIGNUP_FIELDS = [
     "email",
 ]
 
-SOCIALACCOUNT_STORE_TOKENS = False
-
-SOCIALACCOUNT_ADAPTER = "github_integration.adapter.GitHubSocialAccountAdapter"
-
 FIELD_ENCRYPTION_KEYS = [env("FIELDS_ENCRYPTION_KEY")]
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "DevSync",
     "DESCRIPTION": "API documentation for DevSync application",
     "VERSION": "1.0.0",
-    "SECURITY": [
-        {"BearerAuth": []},
-        # {"CookieAuth": []}
-    ],
+    "SECURITY": [{"CookieAuth": []}],
     "SECURITY_SCHEMES": {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
+        "CookieAuth": {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": "sessionid",
         },
-        # "CookieAuth": {
-        #     "type": "apiKey",
-        #     "in": "cookie",
-        #     "name": "sessionid", 
-        # },
     },
 }
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False 
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = "Lax"
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
@@ -203,7 +185,7 @@ AUTHENTICATION_BACKENDS = (
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "authentication.permissions.IsGitHubAuthenticated",
@@ -218,6 +200,8 @@ REST_FRAMEWORK = {
 ROOT_URLCONF = "DevSync.urls"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
 
 TEMPLATES = [
     {

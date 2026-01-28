@@ -1,8 +1,9 @@
 import requests
 from allauth.socialaccount.models import SocialAccount
-from github_integration.models import GithubProfile
 from django.conf import settings
-from rest_framework_simplejwt.tokens import RefreshToken
+
+from github_integration.models import GithubProfile
+
 
 def revoke_github_token(user):
     """
@@ -13,7 +14,9 @@ def revoke_github_token(user):
     if not github_account:
         return False
 
-    github_token = GithubProfile.objects.filter(github_username=user.github_username).first()
+    github_token = GithubProfile.objects.filter(
+        github_username=user.github_username
+    ).first()
 
     if not github_token:
         return False
@@ -30,30 +33,3 @@ def revoke_github_token(user):
     )
 
     return response.status_code == 204
-
-
-def logout(request):
-    """
-    Logs out the user by blacklisting the refresh token.
-    """
-    refresh_token = request.data.get("refresh", None)
-
-    if not refresh_token:
-        return {
-            "status": 400,
-            "data": {"message": "Refresh token is required for logout."},
-        }
-
-    try:
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-    except Exception:
-        return {
-            "status": 400,
-            "data": {"message": "Invalid refresh token."},
-        }
-
-    return {
-        "status": 200,
-        "data": {"message": "User has been logged out."},
-    }

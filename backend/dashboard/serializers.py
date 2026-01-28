@@ -6,12 +6,14 @@ from github_integration.models import GithubProfile, Repository
 class GithubProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = GithubProfile
-        fields = '__all__'
+        fields = "__all__"
+
 
 class RepositorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Repository
-        fields = '__all__'
+        fields = "__all__"
+
 
 class DashboardResponseSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -23,4 +25,10 @@ class DashboardResponseSerializer(serializers.Serializer):
     is_portfolio_public = serializers.BooleanField()
     portfolio_slug = serializers.SlugField(max_length=255)
     github_profile = GithubProfileSerializer(allow_null=True)
-    repository_details = RepositorySerializer(allow_null=True, many=True)
+    repository_details = RepositorySerializer(
+        source="github_profile.repositories", many=True, read_only=True
+    )
+
+
+class SyncNowResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()

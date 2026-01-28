@@ -11,18 +11,10 @@ class UserResponseSerializer(serializers.ModelSerializer):
             "github_username",
         ]
 
-class UserLogoutRequestSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
 
 class UserLogoutResponseSerializer(serializers.Serializer):
     message = serializers.CharField()
 
-class GitHubDisconnectRequestSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
 
 class GitHubDisconnectResponseSerializer(serializers.Serializer):
     message = serializers.CharField()
-
-class AuthTokenResponseSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-    access = serializers.CharField()

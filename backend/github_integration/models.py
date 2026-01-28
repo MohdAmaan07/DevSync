@@ -89,8 +89,8 @@ class Repository(models.Model):
     is_archived = models.BooleanField(default=False)
 
     # Dates
-    created_at_github = models.DateTimeField()
-    updated_at_github = models.DateTimeField()
+    created_at_github = models.DateTimeField(null=True, blank=True)
+    updated_at_github = models.DateTimeField(null=True, blank=True)
     pushed_at_github = models.DateTimeField(null=True, blank=True)
 
     # Portfolio Display Settings
