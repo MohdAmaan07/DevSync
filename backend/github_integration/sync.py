@@ -73,7 +73,7 @@ def sync_repositories(user_id, token):
                 }
 
                 try:
-                    obj, created = Repository.objects.update_or_create(
+                    Repository.objects.update_or_create(
                         github_profile=github_profile,
                         name=repo_data.get("name"),
                         defaults=repo,

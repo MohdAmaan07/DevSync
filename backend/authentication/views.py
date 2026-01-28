@@ -69,17 +69,11 @@ class AuthenticationView(GenericViewSet):
                 status=400,
             )
 
-        profile = GithubProfile.objects.filter(user=request.user).first()
-
-        if profile:
-            profile.delete()
-            request.user.github_username = None
-            request.user.save(update_fields=["github_username"])
+        GithubProfile.objects.filter(user=request.user).delete()
+        request.user.github_username = None
+        request.user.save(update_fields=["github_username"])
 
         SocialAccount.objects.filter(user=request.user, provider="github").delete()
-        SocialToken.objects.filter(
-            account__user=request.user, account__provider="github"
-        ).delete()
 
         logout(request)
 

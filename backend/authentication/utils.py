@@ -22,7 +22,7 @@ def revoke_github_token(user):
         return False
 
     response = requests.delete(
-        f"https://api.github.com/applications/{settings.GITHUB_CLIENT_ID}/token",
+        f"https://api.github.com/applications/{settings.GITHUB_CLIENT_ID}/grant",
         auth=(settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET),
         json={"access_token": github_token.access_token},
         headers={
