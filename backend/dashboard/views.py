@@ -7,7 +7,11 @@ from rest_framework.viewsets import GenericViewSet
 from github_integration.models import GithubProfile
 from github_integration.tasks import sync_repositories_task
 
-from .serializers import DashboardResponseSerializer, SyncNowResponseSerializer
+from .serializers import (
+    DashboardRequestSerializer,
+    DashboardResponseSerializer,
+    SyncNowResponseSerializer,
+)
 
 
 # Create your views here.
@@ -29,19 +33,17 @@ class DashboardView(GenericViewSet):
     @extend_schema(
         summary="Dashboard View",
         description="Renders the dashboard page for authenticated users.",
-        request=None,
+        parameters=[DashboardRequestSerializer],
         responses={200: DashboardResponseSerializer},
     )
     @action(detail=False, methods=["get"], url_path="stats")
-    def get(self, request):
+    def stats(self, request):
+        serializer = DashboardRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        repo_count = serializer.validated_data.get("repository_count")
         user = self.get_queryset().get()
-        serializer = self.get_serializer(user)
-        return Response(
-            {
-                "message": "Dashboard data",
-                "user_filter": serializer.data,
-            }
-        )
+        serializer = self.get_serializer(user, context={"repository_count": repo_count})
+        return Response(serializer.data)
 
     @extend_schema(
         summary="Dashboard Sync",

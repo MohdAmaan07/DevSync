@@ -39,4 +39,5 @@ urlpatterns = [
     path("account/", include("allauth.urls")),
     path("auth/", include("authentication.urls")),
     path("dashboard/", include("dashboard.urls")),
+    path("portfolio/", include("portfolios.urls")),
 ]

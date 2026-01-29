@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from encrypted_fields.fields import EncryptedCharField
 
@@ -15,15 +16,24 @@ class GithubProfile(models.Model):
         "authentication.User", on_delete=models.CASCADE, related_name="github_profile"
     )
     github_username = models.CharField(max_length=255, unique=True)
-    github_id = models.BigIntegerField(unique=True)
+    github_id = models.PositiveBigIntegerField(unique=True)
     access_token = EncryptedCharField(max_length=255, blank=True, null=True)
     avatar_url = models.URLField(blank=True, null=True)
     profile_url = models.URLField(blank=True, null=True)
 
     # GitHub Stats
-    public_repos = models.IntegerField(default=0)
-    followers = models.IntegerField(default=0)
-    following = models.IntegerField(default=0)
+    public_repos = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
+    followers = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
+    following = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
     joined_date = models.DateTimeField(null=True, blank=True)
 
     # Profile Data
@@ -67,7 +77,7 @@ class Repository(models.Model):
     name = models.CharField(max_length=255)
     full_name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    github_id = models.BigIntegerField(unique=True)
+    github_id = models.PositiveBigIntegerField(unique=True)
 
     # URLs
     html_url = models.URLField()
@@ -75,14 +85,25 @@ class Repository(models.Model):
     git_url = models.URLField()
 
     # Stats
-    stars_count = models.IntegerField(default=0)
-    forks_count = models.IntegerField(default=0)
-    watchers_count = models.IntegerField(default=0)
-    open_issues_count = models.IntegerField(default=0)
+    stars_count = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
+    forks_count = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
+    watchers_count = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
+    open_issues_count = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
 
     # Repository Properties
     language = models.CharField(max_length=100, blank=True, null=True)
-    languages = models.JSONField(default=dict, blank=True)
     topics = models.JSONField(default=list, blank=True)
 
     # Flags
@@ -129,9 +150,18 @@ class Commit(models.Model):
     date = models.DateTimeField()
 
     # Stats for contribution graph
-    additions = models.IntegerField(default=0)
-    deletions = models.IntegerField(default=0)
-    total_changes = models.IntegerField(default=0)
+    additions = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
+    deletions = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
+    total_changes = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

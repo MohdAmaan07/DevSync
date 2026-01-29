@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 
@@ -13,7 +14,10 @@ class PortfolioSettings(models.Model):
     show_github_stats = models.BooleanField(default=True)
     show_social_links = models.BooleanField(default=True)
     show_forked_repos = models.BooleanField(default=False)
-    min_stars_to_show = models.IntegerField(default=0)
+    min_stars_to_show = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1_000_000)],
+    )
     show_contributions = models.BooleanField(default=True)
     show_recent_activity = models.BooleanField(default=True)
     show_projects = models.BooleanField(default=True)
@@ -29,17 +33,20 @@ class PortfolioSettings(models.Model):
         ],
         default="grid",
     )
-    projects_per_page = models.IntegerField(default=6)
+    projects_per_page = models.PositiveIntegerField(
+        default=6,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+    )
     enable_dark_mode = models.BooleanField(default=False)
 
     allow_contact_form = models.BooleanField(default=True)
     contact_email = models.EmailField(blank=True, null=True)
-    resume_file = models.FileField(upload_to="resumes/", blank=True, null=True)
+    resume_url = models.URLField(blank=True, null=True)
 
     meta_title = models.CharField(max_length=60, blank=True)
     meta_description = models.CharField(max_length=160, blank=True)
 
-    custom_domain = models.CharField(max_length=255, blank=True, null=True)
+    custom_domain = models.URLField(max_length=255, blank=True, null=True)
     is_published = models.BooleanField(default=True)
 
     google_analytics_id = models.CharField(max_length=20, blank=True, null=True)
@@ -49,12 +56,14 @@ class PortfolioSettings(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base_slug = slugify(self.user.display_name or self.user.email.split("@")[0])
+            base_slug = slugify(
+                self.user.get_username() or self.user.email.split("@")[0]
+            )
             self.slug = base_slug
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.display_name or self.user.email} - Portfolio Settings"
+        return f"{self.user.get_username() or self.user.email} - Portfolio Settings"
 
     class Meta:
         verbose_name = "Portfolio Settings"
@@ -90,7 +99,7 @@ class SocialLinks(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.display_name or self.user.email} - Social Links"
+        return f"{self.user.get_username() or self.user.email} - Social Links"
 
     class Meta:
         verbose_name = "Social Links"
@@ -98,6 +107,7 @@ class SocialLinks(models.Model):
         indexes = [
             models.Index(fields=["user"]),
         ]
+
 
 class PortfolioSection(models.Model):
     SECTION_TYPES = [
@@ -121,7 +131,10 @@ class PortfolioSection(models.Model):
     title = models.CharField(max_length=100)
     content = models.TextField(blank=True)
     is_enabled = models.BooleanField(default=True)
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1000)],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -134,7 +147,7 @@ class PortfolioSection(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.display_name or self.user.email} - {self.title}"
+        return f"{self.user.get_username() or self.user.email} - {self.title}"
 
 
 class Skill(models.Model):
@@ -153,7 +166,11 @@ class Skill(models.Model):
     )
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=20, choices=SKILL_CATEGORIES)
-    proficiency = models.IntegerField(default=50, help_text="Proficiency level (0-100)")
+    proficiency = models.IntegerField(
+        default=50,
+        help_text="Proficiency level (0-100)",
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     icon_url = models.URLField(blank=True, null=True)
     is_featured = models.BooleanField(default=False)
 
@@ -168,4 +185,4 @@ class Skill(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.display_name or self.user.email} - {self.name}"
+        return f"{self.user.get_username() or self.user.email} - {self.name}"

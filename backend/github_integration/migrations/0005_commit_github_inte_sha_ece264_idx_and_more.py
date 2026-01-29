@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("github_integration", "0004_alter_repository_created_at_github_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

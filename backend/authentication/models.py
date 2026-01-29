@@ -14,7 +14,7 @@ class User(AbstractUser):
         if not self.portfolio_slug:
             self.portfolio_slug = self.username.lower().replace(" ", "-")
         super().save(*args, **kwargs)
-        
+
     class Meta:
         indexes = [
             models.Index(fields=["portfolio_slug"]),
