@@ -1,4 +1,4 @@
-from allauth.socialaccount.models import SocialAccount, SocialToken
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model, logout
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
