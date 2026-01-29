@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("github_integration", "0005_commit_github_inte_sha_ece264_idx_and_more"),
     ]

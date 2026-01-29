@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("portfolios", "0003_alter_portfoliosettings_min_stars_to_show"),
     ]
