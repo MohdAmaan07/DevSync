@@ -59,6 +59,9 @@ class PortfolioSettings(models.Model):
     class Meta:
         verbose_name = "Portfolio Settings"
         verbose_name_plural = "Portfolio Settings"
+        indexes = [
+            models.Index(fields=["slug"]),
+        ]
 
 
 class SocialLinks(models.Model):
@@ -92,7 +95,9 @@ class SocialLinks(models.Model):
     class Meta:
         verbose_name = "Social Links"
         verbose_name_plural = "Social Links"
-
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
 
 class PortfolioSection(models.Model):
     SECTION_TYPES = [
@@ -124,6 +129,9 @@ class PortfolioSection(models.Model):
     class Meta:
         ordering = ["order", "created_at"]
         unique_together = ["user", "section_type"]
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
 
     def __str__(self):
         return f"{self.user.display_name or self.user.email} - {self.title}"
@@ -154,6 +162,10 @@ class Skill(models.Model):
     class Meta:
         unique_together = ["user", "name"]
         ordering = ["-is_featured", "-proficiency", "name"]
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["category"]),
+        ]
 
     def __str__(self):
         return f"{self.user.display_name or self.user.email} - {self.name}"

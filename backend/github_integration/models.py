@@ -53,6 +53,9 @@ class GithubProfile(models.Model):
     class Meta:
         verbose_name = "GitHub Profile"
         verbose_name_plural = "GitHub Profiles"
+        indexes = [
+            models.Index(fields=["github_username"]),
+        ]
 
 
 class Repository(models.Model):
@@ -107,6 +110,10 @@ class Repository(models.Model):
     class Meta:
         ordering = ["-is_featured", "-stars_count", "-updated_at_github"]
         unique_together = ["github_profile", "name"]
+        indexes = [
+            models.Index(fields=["github_id"]),
+            models.Index(fields=["github_profile", "is_hidden"]),
+        ]
 
 
 class Commit(models.Model):
@@ -133,6 +140,10 @@ class Commit(models.Model):
 
     class Meta:
         ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["sha"]),
+            models.Index(fields=["repository", "date"]),
+        ]
 
 
 class GitHubSyncLog(models.Model):
@@ -164,3 +175,6 @@ class GitHubSyncLog(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["github_profile", "sync_type", "status"]),
+        ]
