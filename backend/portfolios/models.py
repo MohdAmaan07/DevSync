@@ -173,6 +173,10 @@ class Skill(models.Model):
     )
     icon_url = models.URLField(blank=True, null=True)
     is_featured = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1000)],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

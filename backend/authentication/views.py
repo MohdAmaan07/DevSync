@@ -2,11 +2,9 @@ from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model, logout
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from authentication.permissions import IsGitHubAuthenticated
 from github_integration.models import GithubProfile
 
 from .serializers import (
@@ -20,7 +18,6 @@ from .utils import revoke_github_token
 # Create your views here.
 @extend_schema(tags=["Auth"])
 class AuthenticationView(GenericViewSet):
-    permission_classes = [IsAuthenticated, IsGitHubAuthenticated]
     queryset = get_user_model().objects.all()
 
     @extend_schema(

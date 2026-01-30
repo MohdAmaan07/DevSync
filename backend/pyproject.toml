@@ -12,6 +12,7 @@ dependencies = [
     "django-searchable-encrypted-fields>=0.2.1",
     "djangorestframework>=3.16.0",
     "drf-spectacular>=0.29.0",
+    "faker>=40.1.2",
     "pillow>=11.3.0",
     "redis>=6.2.0",
     "requests>=2.32.4",

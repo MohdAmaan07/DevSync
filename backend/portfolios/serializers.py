@@ -1,51 +1,76 @@
-from rest_framework.serializers import ModelSerializer, Serializer
+from rest_framework import serializers
 
 from themes.models import Theme, ThemeConfig
 
 from .models import PortfolioSection, PortfolioSettings, Skill, SocialLinks
 
 
-class ThemeSerializer(ModelSerializer):
+class ThemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Theme
-        exclude = ("id",)
+        fields = ("name", "key", "description")
 
 
-class ThemeConfigSerializer(ModelSerializer):
+class ThemeConfigSerializer(serializers.ModelSerializer):
+    theme = serializers.PrimaryKeyRelatedField(
+        queryset=Theme.objects.all(), allow_null=True, required=False
+    )
+    theme_details = ThemeSerializer(source="theme", read_only=True)
+
     class Meta:
         model = ThemeConfig
-        exclude = ("id",)
+        exclude = ("id", "settings")
 
 
-class PortfolioSettingSerializer(ModelSerializer):
+class PortfolioSettingSerializer(serializers.ModelSerializer):
+    theme_config = ThemeConfigSerializer(allow_null=True, required=False)
+    resume_url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
+    custom_domain = serializers.URLField(
+        allow_blank=True, allow_null=True, required=False
+    )
+
     class Meta:
         model = PortfolioSettings
-        exclude = ("id", "user")
+        exclude = ("user",)
 
-    theme = ThemeSerializer(allow_null=True)
-    theme_config = ThemeConfigSerializer(allow_null=True)
+    def update(self, instance, validated_data):
+        config_data = validated_data.pop("theme_config", None)
+
+        instance = super().update(instance, validated_data)
+
+        if config_data is not None:
+            config_obj, _ = ThemeConfig.objects.get_or_create(settings=instance)
+            config_serializer = ThemeConfigSerializer(
+                config_obj, data=config_data, partial=True
+            )
+            config_serializer.is_valid(raise_exception=True)
+            config_serializer.save()
+
+        return instance
 
 
-class PortfolioSectionSerializer(ModelSerializer):
+class PortfolioSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PortfolioSection
-        exclude = ("id", "user")
+        exclude = ("user",)
 
 
-class SocialLinksSerializer(ModelSerializer):
-    class Meta:
-        exclude = ("id", "user")
-        model = SocialLinks
+class SkillSerializer(serializers.ModelSerializer):
+    icon_url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
 
-
-class SkillSerializer(ModelSerializer):
     class Meta:
         model = Skill
-        exclude = ("id", "user")
+        exclude = ("user",)
 
 
-class PortfolioResponseSerializer(Serializer):
+class SocialLinksSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SocialLinks
+        exclude = ("user",)
+
+
+class PortfolioResponseSerializer(serializers.Serializer):
     settings = PortfolioSettingSerializer()
     sections = PortfolioSectionSerializer(many=True)
-    social_links = SocialLinksSerializer(allow_null=True)
+    social_links = SocialLinksSerializer()
     skills = SkillSerializer(many=True)
