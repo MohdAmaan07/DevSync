@@ -55,7 +55,7 @@ class CompletePortfolioView(APIView):
             "settings": PortfolioSettings.objects.filter(user=user).first(),
             "sections": PortfolioSection.objects.filter(user=user).order_by("order"),
             "social_links": SocialLinks.objects.filter(user=user).first(),
-            "skills": Skill.objects.filter(user=user).order("order"),
+            "skills": Skill.objects.filter(user=user).order_by("order"),
         }
         serializer = PortfolioResponseSerializer(data)
         return Response(serializer.data)

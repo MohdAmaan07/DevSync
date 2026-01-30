@@ -28,6 +28,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
+GITHUB_API_BASE_URL = env("GITHUB_API_BASE_URL", default="https://api.github.com")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!

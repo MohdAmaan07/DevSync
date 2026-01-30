@@ -80,7 +80,8 @@ class Command(BaseCommand):
                 ("Docker", "devops"),
                 ("Figma", "design"),
             ]
-            for name, cat in skill_list:
+
+            for i, (name, cat) in enumerate(skill_list):
                 Skill.objects.get_or_create(
                     user=user,
                     name=name,
@@ -88,6 +89,7 @@ class Command(BaseCommand):
                         "category": cat,
                         "proficiency": random.randint(60, 100),
                         "is_featured": random.choice([True, False]),
+                        "order": i,  
                     },
                 )
 

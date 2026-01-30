@@ -4,5 +4,5 @@ from .sync import sync_repositories
 
 
 @task
-def sync_repositories_task(github_id, token):
-    sync_repositories(github_id, token)
+async def sync_repositories_task(github_id, token):
+    await sync_repositories(github_id, token)
