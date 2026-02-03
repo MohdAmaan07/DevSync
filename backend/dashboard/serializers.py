@@ -39,7 +39,9 @@ class DashboardResponseSerializer(serializers.Serializer):
 
     @extend_schema_field(RepositorySerializer(many=True))
     def get_repository_details(self, obj):
-        repositories = Repository.objects.filter(github_profile__user=obj)
+        repositories = Repository.objects.filter(github_profile__user=obj).order_by(
+            "-updated_at_github"
+        )[: self.context.get("repository_count", 6)]
         return RepositorySerializer(repositories, many=True).data
 
 
