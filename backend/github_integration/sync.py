@@ -1,11 +1,12 @@
 import httpx
+from asgiref.sync import sync_to_async
+from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.db import transaction
-from django.conf import settings
-from asgiref.sync import sync_to_async
 
 from .models import GithubProfile, GitHubSyncLog, Repository
+
 
 async def fetch_github_repositories(token):
     repos = []
@@ -24,18 +25,23 @@ async def fetch_github_repositories(token):
 
                 if response.status_code != 200:
                     error_msg = response.text[:500]
-                    if response.status_code == 403 and "rate limit" in error_msg.lower():
+                    if (
+                        response.status_code == 403
+                        and "rate limit" in error_msg.lower()
+                    ):
                         reset_time = response.headers.get("x-rateLimit-reset")
                         error_msg = f"Rate limit exceeded. Reset at {reset_time}"
                     elif response.status_code == 429:
                         reset_time = response.headers.get("x-rateLimit-reset")
                         error_msg = f"Too many requests. Reset at {reset_time}"
 
-                    errors.append({
-                        "url": url,
-                        "status_code": response.status_code,
-                        "error": error_msg,
-                    })
+                    errors.append(
+                        {
+                            "url": url,
+                            "status_code": response.status_code,
+                            "error": error_msg,
+                        }
+                    )
                     break
 
                 repos_data = response.json()
@@ -43,18 +49,18 @@ async def fetch_github_repositories(token):
 
                 next_link = response.links.get("next")
                 url = next_link["url"] if next_link else None
-            
+
             except Exception as e:
                 errors.append({"url": url, "error": str(e)})
                 break
-                
+
     return repos, errors
 
 
 def save_to_db(repos, github_profile):
     count = 0
     item_errors = []
-    
+
     with transaction.atomic():
         for repo_data in repos:
             try:
@@ -74,9 +80,15 @@ def save_to_db(repos, github_profile):
                     "is_private": repo_data.get("private", False),
                     "is_fork": repo_data.get("fork", False),
                     "is_archived": repo_data.get("archived", False),
-                    "created_at_github": parse_datetime(repo_data.get("created_at")) if repo_data.get("created_at") else None,
-                    "updated_at_github": parse_datetime(repo_data.get("updated_at")) if repo_data.get("updated_at") else None,
-                    "pushed_at_github": parse_datetime(repo_data.get("pushed_at")) if repo_data.get("pushed_at") else None,
+                    "created_at_github": parse_datetime(repo_data.get("created_at"))
+                    if repo_data.get("created_at")
+                    else None,
+                    "updated_at_github": parse_datetime(repo_data.get("updated_at"))
+                    if repo_data.get("updated_at")
+                    else None,
+                    "pushed_at_github": parse_datetime(repo_data.get("pushed_at"))
+                    if repo_data.get("pushed_at")
+                    else None,
                 }
 
                 Repository.objects.update_or_create(
@@ -86,11 +98,10 @@ def save_to_db(repos, github_profile):
                 )
                 count += 1
             except Exception as e:
-                item_errors.append({
-                    "repo": repo_data.get("full_name", "Unknown"), 
-                    "error": str(e)
-                })
-    
+                item_errors.append(
+                    {"repo": repo_data.get("full_name", "Unknown"), "error": str(e)}
+                )
+
     return count, item_errors
 
 
@@ -115,7 +126,9 @@ async def sync_repositories(user_id, token):
         all_errors.extend(fetch_errors)
 
         if repos:
-            repos_synced, db_errors = await sync_to_async(save_to_db)(repos, github_profile)
+            repos_synced, db_errors = await sync_to_async(save_to_db)(
+                repos, github_profile
+            )
             all_errors.extend(db_errors)
 
         if all_errors and repos_synced == 0:

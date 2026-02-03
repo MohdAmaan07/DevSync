@@ -89,7 +89,7 @@ class Command(BaseCommand):
                         "category": cat,
                         "proficiency": random.randint(60, 100),
                         "is_featured": random.choice([True, False]),
-                        "order": i,  
+                        "order": i,
                     },
                 )
 

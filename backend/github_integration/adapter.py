@@ -1,8 +1,8 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialToken
+from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 from django.utils.dateparse import parse_datetime
-from asgiref.sync import sync_to_async
 
 from .models import GithubProfile
 from .tasks import sync_repositories_task
