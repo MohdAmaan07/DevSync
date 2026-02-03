@@ -10,6 +10,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from .models import Theme, ThemeConfig
 from .serializers import CustomThemeSerializer, ThemeConfigSerializer, ThemeSerializer
+from .presets import THEME_PRESETS
 
 
 # Create your views here.
@@ -81,10 +82,15 @@ class CustomThemeViewSet(ModelViewSet):
 
         unique_key = f"{original.key}-{request.user.id}-{uuid.uuid4().hex[:8]}"
 
+        config_data = original.default_config
+        if not config_data and not original.is_custom:
+            config_data = THEME_PRESETS.get(original.key, {})
+
         custom_theme = Theme.objects.create(
             name=f"{original.name} (Copy)",
             key=unique_key,
             description=original.description,
+            default_config=config_data,
             is_custom=True,
             created_by=request.user,
         )
@@ -92,7 +98,7 @@ class CustomThemeViewSet(ModelViewSet):
         return Response(
             {
                 "message": "Theme cloned successfully",
-                "theme": ThemeSerializer(custom_theme).data,
+                "theme": CustomThemeSerializer(custom_theme).data,
             },
             status=status.HTTP_201_CREATED,
         )
