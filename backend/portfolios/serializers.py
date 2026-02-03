@@ -5,17 +5,17 @@ from themes.models import Theme, ThemeConfig
 from .models import PortfolioSection, PortfolioSettings, Skill, SocialLinks
 
 
-class ThemeSerializer(serializers.ModelSerializer):
+class PortfolioThemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Theme
         fields = ("name", "key", "description")
 
 
-class ThemeConfigSerializer(serializers.ModelSerializer):
+class PortfolioThemeConfigSerializer(serializers.ModelSerializer):
     theme = serializers.PrimaryKeyRelatedField(
         queryset=Theme.objects.all(), allow_null=True, required=False
     )
-    theme_details = ThemeSerializer(source="theme", read_only=True)
+    theme_details = PortfolioThemeSerializer(source="theme", read_only=True)
 
     class Meta:
         model = ThemeConfig
@@ -23,7 +23,7 @@ class ThemeConfigSerializer(serializers.ModelSerializer):
 
 
 class PortfolioSettingSerializer(serializers.ModelSerializer):
-    theme_config = ThemeConfigSerializer(allow_null=True, required=False)
+    theme_config = PortfolioThemeConfigSerializer(allow_null=True, required=False)
     resume_url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
     custom_domain = serializers.URLField(
         allow_blank=True, allow_null=True, required=False
@@ -40,7 +40,7 @@ class PortfolioSettingSerializer(serializers.ModelSerializer):
 
         if config_data is not None:
             config_obj, _ = ThemeConfig.objects.get_or_create(settings=instance)
-            config_serializer = ThemeConfigSerializer(
+            config_serializer = PortfolioThemeConfigSerializer(
                 config_obj, data=config_data, partial=True
             )
             config_serializer.is_valid(raise_exception=True)
@@ -74,3 +74,4 @@ class PortfolioResponseSerializer(serializers.Serializer):
     sections = PortfolioSectionSerializer(many=True)
     social_links = SocialLinksSerializer()
     skills = SkillSerializer(many=True)
+    theme_config = PortfolioThemeConfigSerializer(allow_null=True, required=False)

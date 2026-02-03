@@ -7,7 +7,17 @@ class Theme(models.Model):
     name = models.CharField(max_length=100, unique=True)
     key = models.SlugField(max_length=50, unique=True)
     description = models.TextField(blank=True)
+    is_custom = models.BooleanField(default=False)
 
+    default_config = models.JSONField(null=True, blank=True)
+
+    created_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="custom_themes",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -42,7 +52,6 @@ class ThemeConfig(models.Model):
     spacing = models.CharField(
         max_length=10, choices=SIZE_CHOICES, blank=True, null=True
     )  # e.g., '16px', '1em'
-    spacing = models.CharField(max_length=20, blank=True, null=True)  #
 
     dark_mode_enabled = models.BooleanField(default=False)
     border_radius = models.PositiveBigIntegerField(

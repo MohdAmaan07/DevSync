@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from core.views import SingletonUserView
+from themes.models import ThemeConfig
 
 from .models import PortfolioSection, PortfolioSettings, Skill, SocialLinks
 from .serializers import (
@@ -56,6 +57,7 @@ class CompletePortfolioView(APIView):
             "sections": PortfolioSection.objects.filter(user=user).order_by("order"),
             "social_links": SocialLinks.objects.filter(user=user).first(),
             "skills": Skill.objects.filter(user=user).order_by("order"),
+            "theme_config": ThemeConfig.objects.filter(settings__user=user).first(),
         }
         serializer = PortfolioResponseSerializer(data)
         return Response(serializer.data)

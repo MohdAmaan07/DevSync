@@ -40,4 +40,5 @@ urlpatterns = [
     path("auth/", include("authentication.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("portfolio/", include("portfolios.urls")),
+    path("themes/", include("themes.urls")),
 ]
