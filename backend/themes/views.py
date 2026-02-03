@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Theme, ThemeConfig
-from .serializers import CustomThemeSerializer, ThemeConfigSerializer, ThemeSerializer
+from .serializers import CustomThemeSerializer, ThemeConfigSerializer, ThemeSerializer, ThemeRequestSerializer
 from .presets import THEME_PRESETS
 
 
@@ -37,6 +37,75 @@ class ThemeConfigViewSet(ModelViewSet):
 
     def get_queryset(self):
         return ThemeConfig.objects.filter(settings__user=self.request.user)
+
+    @extend_schema(
+        request=ThemeRequestSerializer,
+        responses={200: ThemeConfigSerializer},
+    )
+    @action(detail=False, methods=["post"])
+    def apply_theme(self, request):
+        theme_id = request.data.get("theme_id")
+        reset_overrides = request.data.get("reset_overrides", True)
+
+        if not theme_id:
+            return Response(
+                {"error": "theme_id is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            theme = Theme.objects.get(id=theme_id)
+        except Theme.DoesNotExist:
+            return Response(
+                {"error": "Theme not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if theme.is_custom and theme.created_by != request.user:
+            return Response(
+                {"error": "Cannot apply another user's custom theme"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            settings = request.user.portfolio_settings
+        except Exception:
+            return Response(
+                {"error": "Portfolio settings not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if reset_overrides:
+            defaults = {
+                "theme": theme,
+                # Reset all overrides when applying new theme
+                "primary_color": None,
+                "secondary_color": None,
+                "background_color": None,
+                "accent_color": None,
+                "text_color": None,
+                "font_family": None,
+                "spacing": None,
+                "border_radius": 0,
+                "dark_mode_enabled": False,
+            }
+        
+        else:
+            defaults = {
+                "theme": theme,
+            }
+            
+        theme_config, created = ThemeConfig.objects.update_or_create(
+            settings=settings,
+            defaults=defaults
+        )
+
+        return Response(
+            {
+                "message": f"Theme '{theme.name}' applied successfully",
+                "config": ThemeConfigSerializer(theme_config).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 
 @extend_schema(tags=["Custom Themes"])

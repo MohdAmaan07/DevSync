@@ -55,7 +55,7 @@ class ThemeConfig(models.Model):
 
     dark_mode_enabled = models.BooleanField(default=False)
     border_radius = models.PositiveBigIntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
     )  # in pixels
 
     updated_at = models.DateTimeField(auto_now=True)

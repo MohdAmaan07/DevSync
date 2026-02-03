@@ -45,15 +45,22 @@ class Command(BaseCommand):
         updated_count = 0
 
         for theme in THEMES:
-            Theme.objects.update_or_create(
+            obj, created = Theme.objects.update_or_create(
                 key=theme["key"],
                 defaults={
                     "name": theme["name"],
                     "description": theme["description"],
+                    "is_custom": False,
+                    "created_by": None,
                 },
             )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded {len(THEMES)} themes, created {created_count}, updated {updated_count}."
+                f"Seeded {len(THEMES)} themes: {created_count} created, {updated_count} updated."
             )
         )

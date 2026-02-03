@@ -86,3 +86,8 @@ class CustomThemeSerializer(serializers.ModelSerializer):
         if instance.default_config:
             data["config"] = instance.default_config
         return data
+
+
+class ThemeRequestSerializer(serializers.Serializer):
+    theme_id = serializers.IntegerField(required=True)
+    reset_overrides = serializers.BooleanField(required=False, default=True)
