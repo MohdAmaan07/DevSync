@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Theme, ThemeConfig
 from .presets import THEME_PRESETS
 

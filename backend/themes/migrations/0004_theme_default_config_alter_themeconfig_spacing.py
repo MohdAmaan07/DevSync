@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("themes", "0003_theme_created_by_theme_is_custom"),
     ]

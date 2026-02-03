@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Theme, ThemeConfig
-from .serializers import ThemeConfigSerializer, ThemeSerializer, CustomThemeSerializer
+from .serializers import CustomThemeSerializer, ThemeConfigSerializer, ThemeSerializer
 
 
 # Create your views here.

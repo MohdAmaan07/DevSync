@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("themes", "0002_alter_themeconfig_border_radius"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
