@@ -77,7 +77,7 @@ class Repository(models.Model):
     name = models.CharField(max_length=255)
     full_name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    github_id = models.PositiveBigIntegerField(unique=True)
+    github_id = models.PositiveBigIntegerField()
 
     # URLs
     html_url = models.URLField()
@@ -135,6 +135,7 @@ class Repository(models.Model):
             models.Index(fields=["github_id"]),
             models.Index(fields=["github_profile", "is_hidden"]),
         ]
+        unique_together = ["github_profile", "github_id"]
 
 
 class Commit(models.Model):
@@ -145,23 +146,9 @@ class Commit(models.Model):
         GithubProfile, on_delete=models.CASCADE, related_name="commits"
     )
 
-    sha = models.CharField(max_length=40, unique=True)
+    sha = models.CharField(max_length=40)
     message = models.TextField()
     date = models.DateTimeField()
-
-    # Stats for contribution graph
-    additions = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-    )
-    deletions = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-    )
-    total_changes = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -174,6 +161,7 @@ class Commit(models.Model):
             models.Index(fields=["sha"]),
             models.Index(fields=["repository", "date"]),
         ]
+        unique_together = ["repository", "sha"]
 
 
 class GitHubSyncLog(models.Model):
@@ -190,8 +178,8 @@ class GitHubSyncLog(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     # Sync Results
-    repos_synced = models.IntegerField(default=0)
-    commits_synced = models.IntegerField(default=0)
+    repos_synced = models.IntegerField(default=0, blank=True)
+    commits_synced = models.IntegerField(default=0, blank=True)
     errors = models.JSONField(default=list, blank=True)
 
     started_at = models.DateTimeField(auto_now_add=True)

@@ -43,7 +43,3 @@ class DashboardResponseSerializer(serializers.Serializer):
             "-updated_at_github"
         )[: self.context.get("repository_count", 6)]
         return RepositorySerializer(repositories, many=True).data
-
-
-class SyncNowResponseSerializer(serializers.Serializer):
-    message = serializers.CharField()

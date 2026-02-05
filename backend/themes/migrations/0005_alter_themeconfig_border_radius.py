@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("themes", "0004_theme_default_config_alter_themeconfig_spacing"),
     ]

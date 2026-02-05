@@ -5,149 +5,222 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .models import GithubProfile, GitHubSyncLog, Repository
+from .models import GithubProfile, GitHubSyncLog, Repository, Commit
 
 
-async def fetch_github_repositories(token):
-    repos = []
-    errors = []
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github.v3+json",
-    }
+class GithubAPIClient:
+    def __init__(self, token):
+        self.token = token
+        self.base_url = settings.GITHUB_BASE_URL
+        self.headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
 
-    url = f"{settings.GITHUB_API_BASE_URL}/user/repos?per_page=100"
+    async def _handle_response(self, response):
+        if response.status_code == 200:
+            return response.json(), None
 
-    async with httpx.AsyncClient() as client:
-        while url:
-            try:
-                response = await client.get(url, headers=headers)
+        error_msg = response.text[:500]
+        if response.status_code == 403 and "rate limit" in error_msg.lower():
+            reset_time = response.headers.get("x-rateLimit-reset")
+            error_msg = f"Rate limit exceeded. Reset at {reset_time}"
+        elif response.status_code == 429:
+            reset_time = response.headers.get("x-rateLimit-reset")
+            error_msg = f"Too many requests. Reset at {reset_time}"
+        return None, {"status_code": response.status_code, "error": error_msg}
 
-                if response.status_code != 200:
-                    error_msg = response.text[:500]
-                    if (
-                        response.status_code == 403
-                        and "rate limit" in error_msg.lower()
-                    ):
-                        reset_time = response.headers.get("x-rateLimit-reset")
-                        error_msg = f"Rate limit exceeded. Reset at {reset_time}"
-                    elif response.status_code == 429:
-                        reset_time = response.headers.get("x-rateLimit-reset")
-                        error_msg = f"Too many requests. Reset at {reset_time}"
-
-                    errors.append(
-                        {
-                            "url": url,
-                            "status_code": response.status_code,
-                            "error": error_msg,
-                        }
+    async def fetch_all(self, url, params=None):
+        results = []
+        errors = []
+        async with httpx.AsyncClient() as client:
+            current_url = url
+            current_params = params
+            while current_url:
+                try:
+                    resp = await client.get(
+                        current_url, headers=self.headers, params=current_params
                     )
+                    data, error = await self._handle_response(resp)
+
+                    if error:
+                        errors.append({"url": current_url, **error})
+                        break
+
+                    results.extend(data)
+                    current_url = resp.links.get("next", {}).get("url")
+                    current_params = None
+                except Exception as e:
+                    errors.append({"url": current_url, "error": str(e)})
                     break
-
-                repos_data = response.json()
-                repos.extend(repos_data)
-
-                next_link = response.links.get("next")
-                url = next_link["url"] if next_link else None
-
-            except Exception as e:
-                errors.append({"url": url, "error": str(e)})
-                break
-
-    return repos, errors
+        return results, errors
 
 
-def save_to_db(repos, github_profile):
-    count = 0
-    item_errors = []
+class GithubSyncService:
+    def __init__(self, user_id, token):
+        self.user_id = user_id
+        self.client = GithubAPIClient(token)
+        self.profile = None
 
-    with transaction.atomic():
-        for repo_data in repos:
-            try:
-                repo_defaults = {
-                    "name": repo_data.get("name"),
-                    "full_name": repo_data.get("full_name"),
-                    "description": repo_data.get("description"),
-                    "github_id": repo_data.get("id"),
-                    "html_url": repo_data.get("html_url"),
-                    "clone_url": repo_data.get("clone_url"),
-                    "git_url": repo_data.get("git_url"),
-                    "stars_count": repo_data.get("stargazers_count", 0),
-                    "forks_count": repo_data.get("forks_count", 0),
-                    "watchers_count": repo_data.get("watchers_count", 0),
-                    "open_issues_count": repo_data.get("open_issues_count", 0),
-                    "language": repo_data.get("language"),
-                    "is_private": repo_data.get("private", False),
-                    "is_fork": repo_data.get("fork", False),
-                    "is_archived": repo_data.get("archived", False),
-                    "created_at_github": parse_datetime(repo_data.get("created_at"))
-                    if repo_data.get("created_at")
-                    else None,
-                    "updated_at_github": parse_datetime(repo_data.get("updated_at"))
-                    if repo_data.get("updated_at")
-                    else None,
-                    "pushed_at_github": parse_datetime(repo_data.get("pushed_at"))
-                    if repo_data.get("pushed_at")
-                    else None,
-                }
+    async def _load_profile(self):
+        if not self.profile:
+            self.profile = await GithubProfile.objects.filter(
+                user_id=self.user_id
+            ).afirst()
+        return self.profile
 
-                Repository.objects.update_or_create(
-                    github_profile=github_profile,
-                    github_id=repo_data.get("id"),
-                    defaults=repo_defaults,
-                )
-                count += 1
-            except Exception as e:
-                item_errors.append(
-                    {"repo": repo_data.get("full_name", "Unknown"), "error": str(e)}
-                )
+    def _save_repo_data(self, repo_data):
+        repo_defaults = {
+            "name": repo_data.get("name"),
+            "full_name": repo_data.get("full_name"),
+            "description": repo_data.get("description"),
+            "github_id": repo_data.get("id"),
+            "html_url": repo_data.get("html_url"),
+            "clone_url": repo_data.get("clone_url"),
+            "git_url": repo_data.get("git_url"),
+            "stars_count": repo_data.get("stargazers_count", 0),
+            "forks_count": repo_data.get("forks_count", 0),
+            "watchers_count": repo_data.get("watchers_count", 0),
+            "open_issues_count": repo_data.get("open_issues_count", 0),
+            "language": repo_data.get("language"),
+            "is_private": repo_data.get("private", False),
+            "is_fork": repo_data.get("fork", False),
+            "is_archived": repo_data.get("archived", False),
+            "created_at_github": parse_datetime(repo_data.get("created_at"))
+            if repo_data.get("created_at")
+            else None,
+            "updated_at_github": parse_datetime(repo_data.get("updated_at"))
+            if repo_data.get("updated_at")
+            else None,
+            "pushed_at_github": parse_datetime(repo_data.get("pushed_at"))
+            if repo_data.get("pushed_at")
+            else None,
+        }
 
-    return count, item_errors
+        Repository.objects.update_or_create(
+            github_profile=self.profile,
+            github_id=repo_data.get("id"),
+            defaults=repo_defaults,
+        )
 
+    def _save_commit_data(self, commit_data, repo):
+        commit_info = commit_data.get("commit", {})
+        author_info = commit_info.get("author", {})
 
-async def sync_repositories(user_id, token):
-    github_profile = await GithubProfile.objects.filter(user_id=user_id).afirst()
+        commit_defaults = {
+            "message": commit_info.get("message", "")[:1000],
+            "date": parse_datetime(author_info.get("date"))
+        }
 
-    if not github_profile:
-        return 0
+        Commit.objects.update_or_create(
+            repository=repo,
+            sha=commit_data["sha"],
+            defaults={"github_profile": self.profile, **commit_defaults},
+        )
 
-    sync_log = await GitHubSyncLog.objects.acreate(
-        github_profile=github_profile,
-        sync_type="repositories",
-        status="pending",
-    )
+    async def _save_to_db(self, items, save_func):
+        def wrapper():
+            count = 0
+            item_errors = []
+            with transaction.atomic():
+                for item in items:
+                    try:
+                        save_func(item)
+                        count += 1
+                    except Exception as e:
+                        item_errors.append({"item": str(item), "error": str(e)})
+            return count, item_errors
 
-    started_at = timezone.now()
-    repos_synced = 0
-    all_errors = []
+        return await sync_to_async(wrapper)()
 
-    try:
-        repos, fetch_errors = await fetch_github_repositories(token)
-        all_errors.extend(fetch_errors)
+    async def _run_sync_with_log(self, sync_type, sync_coroutine):
+        profile = await self._load_profile()
+        if not profile:
+            return 0, [{"error": "Profile not found"}]
 
-        if repos:
-            repos_synced, db_errors = await sync_to_async(save_to_db)(
-                repos, github_profile
+        log = await GitHubSyncLog.objects.acreate(
+            github_profile=profile,
+            sync_type=sync_type,
+            status="pending",
+        )
+
+        start_time = timezone.now()
+        items_synced = 0
+        all_errors = []
+
+        try:
+            items_synced, all_errors = sync_coroutine
+
+            if all_errors and items_synced == 0:
+                log.status = "failed"
+            elif all_errors:
+                log.status = "partial"
+            else:
+                log.status = "success"
+
+        except Exception as e:
+            all_errors.append({"error": f"Critical System Error: {str(e)}"})
+            log.status = "failed"
+
+        finally:
+            completed_at = timezone.now()
+            log.completed_at = completed_at
+            log.duration = completed_at - start_time
+
+            if sync_type == "repositories":
+                log.repos_synced = items_synced
+            else:
+                log.commits_synced = items_synced
+
+            log.errors = all_errors[:50]
+            await log.asave()
+
+        return items_synced, all_errors
+
+    async def sync_repositories(self):
+        async def work():
+            url = f"{self.client.base_url}/user/repos"
+            data, errors = await self.client.fetch_all(url, {"per_page": 100})
+            count, db_errors = await self._save_to_db(data, self._save_repo_data)
+            errors.extend(db_errors)
+            return count, errors
+
+        return await self._run_sync_with_log("repositories", await work())
+
+    async def sync_commits(self, repo):
+        async def work():
+            url = f"{self.client.base_url}/repos/{repo.full_name}/commits"
+            params = {"author": self.profile.github_username, "per_page": 100}
+            data, errors = await self.client.fetch_all(url, params)
+            count, db_errors = await self._save_to_db(
+                data, lambda d: self._save_commit_data(d, repo)
             )
-            all_errors.extend(db_errors)
+            errors.extend(db_errors)
+            return count, errors
 
-        if all_errors and repos_synced == 0:
-            sync_log.status = "failed"
-        elif all_errors and repos_synced > 0:
-            sync_log.status = "partial"
-        else:
-            sync_log.status = "success"
+        return await self._run_sync_with_log("commits", await work())
 
-    except Exception as e:
-        all_errors.append({"error": str(e)})
-        sync_log.status = "failed"
+    async def sync_all(self):
+        repos_synced, repo_errors = await self.sync_repositories()
 
-    finally:
-        completed_at = timezone.now()
-        sync_log.completed_at = completed_at
-        sync_log.duration = completed_at - started_at
-        sync_log.repos_synced = repos_synced
-        sync_log.errors = all_errors
-        await sync_log.asave()
+        if repos_synced == 0:
+            return {"repositories": {"synced": 0, "errors": repo_errors}}
 
-    return repos_synced
+        repos = await sync_to_async(list)(
+            Repository.objects.filter(github_profile=self.profile)
+        )
+
+        total_commits_synced = 0
+        all_commit_errors = []
+
+        for repo in repos:
+            commits_synced, commit_errors = await self.sync_commits(repo)
+            total_commits_synced += commits_synced
+            all_commit_errors.extend(
+                [{"repo": repo.full_name, **err} for err in commit_errors]
+            )
+
+        return {
+            "repositories": {"synced": repos_synced, "errors": repo_errors},
+            "commits": {"synced": total_commits_synced, "errors": all_commit_errors},
+        }

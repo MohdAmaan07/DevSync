@@ -17,4 +17,3 @@ class ThemeConfigAdmin(admin.ModelAdmin):
     list_filter = ["theme", "dark_mode_enabled"]
     search_fields = ["settings__user__username"]
     readonly_fields = ["updated_at"]
-

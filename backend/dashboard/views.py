@@ -4,23 +4,16 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from github_integration.models import GithubProfile
-from github_integration.tasks import sync_repositories_task
-
 from .serializers import (
     DashboardRequestSerializer,
     DashboardResponseSerializer,
-    SyncNowResponseSerializer,
 )
 
 
 # Create your views here.
 @extend_schema(tags=["Dashboard"])
 class DashboardView(GenericViewSet):
-    def get_serializer_class(self):
-        if self.action == "sync_now":
-            return SyncNowResponseSerializer
-        return DashboardResponseSerializer
+    serializer_class = DashboardResponseSerializer
 
     def get_queryset(self):
         return (
@@ -43,25 +36,4 @@ class DashboardView(GenericViewSet):
         repo_count = serializer.validated_data.get("repository_count")
         user = self.get_queryset().get()
         serializer = self.get_serializer(user, context={"repository_count": repo_count})
-        return Response(serializer.data)
-
-    @extend_schema(
-        summary="Dashboard Sync",
-        description="Triggers synchronization of GitHub repositories for the authenticated user.",
-        request=None,
-        responses={200: SyncNowResponseSerializer},
-    )
-    @action(detail=False, methods=["post"], url_path="sync")
-    def sync_now(self, request):
-        github_username = request.user.github_username
-        token = (
-            GithubProfile.objects.filter(github_username=github_username)
-            .first()
-            .access_token
-        )
-        if not token:
-            return Response({"error": "Token not found"}, status=400)
-
-        sync_repositories_task.enqueue(request.user.id, token)
-        serializer = SyncNowResponseSerializer({"message": "Sync started"})
         return Response(serializer.data)

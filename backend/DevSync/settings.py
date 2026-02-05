@@ -28,7 +28,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
-GITHUB_API_BASE_URL = env("GITHUB_API_BASE_URL", default="https://api.github.com")
+GITHUB_BASE_URL = env("GITHUB_BASE_URL", default="https://api.github.com")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.github",
     "drf_spectacular",
+    "encrypted_fields",
     "authentication.apps.AuthenticationConfig",
     "portfolios.apps.PortfoliosConfig",
     "github_integration.apps.GithubIntegrationConfig",
@@ -193,6 +194,12 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "core.throttles.GitHubSyncThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "github_sync": "6/hour",
+    },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "authentication.exception_handler.custom_exception_handler",
 }

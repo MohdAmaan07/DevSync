@@ -41,4 +41,5 @@ urlpatterns = [
     path("dashboard/", include("dashboard.urls")),
     path("portfolio/", include("portfolios.urls")),
     path("themes/", include("themes.urls")),
+    path("github/", include("github_integration.urls")),
 ]

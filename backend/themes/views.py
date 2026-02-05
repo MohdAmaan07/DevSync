@@ -9,7 +9,12 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Theme, ThemeConfig
-from .serializers import CustomThemeSerializer, ThemeConfigSerializer, ThemeSerializer, ThemeRequestSerializer
+from .serializers import (
+    CustomThemeSerializer,
+    ThemeConfigSerializer,
+    ThemeSerializer,
+    ThemeRequestSerializer,
+)
 from .presets import THEME_PRESETS
 
 
@@ -87,15 +92,14 @@ class ThemeConfigViewSet(ModelViewSet):
                 "border_radius": 0,
                 "dark_mode_enabled": False,
             }
-        
+
         else:
             defaults = {
                 "theme": theme,
             }
-            
+
         theme_config, created = ThemeConfig.objects.update_or_create(
-            settings=settings,
-            defaults=defaults
+            settings=settings, defaults=defaults
         )
 
         return Response(
@@ -105,7 +109,6 @@ class ThemeConfigViewSet(ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
-
 
 
 @extend_schema(tags=["Custom Themes"])

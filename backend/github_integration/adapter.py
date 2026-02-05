@@ -51,7 +51,7 @@ class GitHubSocialAccountAdapter(DefaultSocialAccountAdapter):
             GithubProfile.objects.update_or_create(user=user, defaults=profile)
 
             if token:
-                sync_to_async(sync_repositories_task.aenqueue)(user.id, token)
+                sync_repositories_task.aenqueue(user.id, token)
         return user
 
     def pre_social_login(self, request, sociallogin):
